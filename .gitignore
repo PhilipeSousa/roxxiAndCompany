@@ -1,0 +1,30 @@
+# Ignorar arquivos de compilação
+bin/
+obj/
+
+# Ignorar arquivos temporários de sistema operacional e IDEs
+*.tmp
+*.temp
+*.bak
+*.swp
+*.suo
+*.user
+*.DS_Store
+Thumbs.db
+
+# Ignorar arquivos de cache
+.vscode/
+.idea/
+*.log
+
+# Ignorar configurações locais do Visual Studio
+*.userosscache
+*.userprefs
+
+# Ignorar pacotes nuget
+*.nupkg
+packages/
+project.lock.json
+
+*.mgcb.cache
+save.txt
