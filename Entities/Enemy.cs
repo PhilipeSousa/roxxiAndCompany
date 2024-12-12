@@ -19,7 +19,8 @@ namespace RoxxiWaiting.Entities
         public float LeftlimitTotheEnemy = 1800f;
         private Vector2 _auxPos;
         private Random _random = new Random();
-        
+        public bool IsDeath = false; 
+        public int MyDeathEffect {get; set;} = -1;
 
         public Enemy(Texture2D mainAtlas, Vector2 position, float layer, SpriteEffects spriteEffectsflip)
         {
@@ -43,6 +44,11 @@ namespace RoxxiWaiting.Entities
             {
                 _pauseTimer -= delta;
                 if (_pauseTimer <= 0) _isPaused = false; 
+                return;
+            }
+            
+            if(IsDeath)
+            {
                 return;
             }
 
@@ -94,6 +100,34 @@ namespace RoxxiWaiting.Entities
         private bool RandomFlip()
         {
             return _random.NextDouble() < CHANCE_TO_FLIP; 
+        }
+
+        public void DeathEffect(GameTime gameTime)
+        {
+            float delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            switch (MyDeathEffect)
+            {
+                // Fade out all
+                case 1: 
+                    Sprite.Rotation += MathHelper.ToRadians(10f); 
+                    Sprite.color *= 0.95f;
+                    break;
+
+                case 2: 
+                    Vector2 randomDirection = new Vector2(
+                        (float)(new Random().NextDouble() - 4), 
+                        (float)(new Random().NextDouble() - 4)
+                    );
+                    Sprite.Position += randomDirection * 100f * delta; 
+                    Sprite.color *= 0.95f; 
+                    break;
+
+                case 3: 
+                    Sprite.Rotation += MathHelper.ToRadians(20f) * delta; 
+                    Sprite.Position += new Vector2((float)Math.Cos(Sprite.Rotation), -1f) * 50f * delta; 
+                    Sprite.color *= 0.95f; 
+                    break;
+            }
         }
 
     }

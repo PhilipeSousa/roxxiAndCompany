@@ -9,8 +9,6 @@ namespace RoxxiWaiting.Entities
 {
     public class Roxxi : Entity
     {   
-        
-        // weapon to roxxi
         public Roxxi(Texture2D mainAltas, Vector2 initalPosition)
 
         {

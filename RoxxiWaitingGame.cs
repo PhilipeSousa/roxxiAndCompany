@@ -12,49 +12,38 @@ public class RoxxiWaitingGame : Game
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
-
     private const string ASSETS_GRAPHICS_NAME = "F_Grafics";
     private Texture2D _graphicsAltas;
-
     public const int WIDTH_WINDOW = 1565 - 192;
     public const int HEIGHT_WINDOW = 324;
-
     private const float INITIAL_SPAWN_DELAY = 3f; 
     private const float MIN_SPAWN_DELAY = 0.01f;  
     private const float SPAWN_ACCELERATION = 0.2f; 
     private const int MAX_ACTIVE_ENEMIES = 50;    
     private float _currentSpawnDelay = INITIAL_SPAWN_DELAY; 
 
-
-    private float _elapsedTime = 0f; 
-    private const float SPAWN_DELAY = 3f; 
-
-    private float _lastAttackTime = 0f;
-
-   
-    private float _rotationCooldown = 0f; 
+    private float _elapsedTime; 
 
     private Rectangle _scytheHitbox;
 
-    // BackGround
     private Sprite _background;
     private Vector2 _backgroundPostion;
 
-    //Cat
     private Sprite _cat;
     private Vector2 _catPosition;
 
-    //Roxxi
     private Roxxi _roxxi;
     private Vector2 _roxxiPosition;
 
-    // Weapon for roxxi
     private Sprite _scythe;
-    private Vector2 offsetNomeFlipFoice = new Vector2(-5, 80);
-    private Vector2 offsetHoriFlipFoice = new Vector2(90, 80);
+    private Vector2 _offsetNoneFlipScythe;
+    private Vector2 _offsetHoriFlipScythe;
 
     private Queue<Enemy> _enemyPool; 
-    private List<Enemy> _activeEnemies; 
+    private List<Enemy> _activeEnemies;
+
+    private List<Enemy> enemiesToRemoveNow;
+
     private Texture2D _collisionTexture;
 
     private bool _isAttacking = false;
@@ -63,6 +52,11 @@ public class RoxxiWaitingGame : Game
     private float _attackTimer = 0f;
     private float _attackScytheTimerHitbox = 0f;
     private bool _hitting = false;
+    private float _rotationCooldown = 0f; 
+
+    private bool _debugMode = false;
+    
+    private Dictionary<Enemy, float> _enemiesPendingRemoval = new Dictionary<Enemy, float>();
 
     public RoxxiWaitingGame()
     {
@@ -81,6 +75,9 @@ public class RoxxiWaitingGame : Game
 
     protected override void LoadContent()
     {
+        _offsetNoneFlipScythe = new Vector2(-5, 80);
+        _offsetHoriFlipScythe = new Vector2(90, 80);
+        
         _collisionTexture = new Texture2D(GraphicsDevice, 1, 1);
         _collisionTexture.SetData(new[] { Color.Red });
 
@@ -102,23 +99,24 @@ public class RoxxiWaitingGame : Game
         _scythe.Layer = 0.5f;
         _scythe.CenterOfRotation = new Vector2(_scythe.RectangleSprite.Width / 2, _scythe.RectangleSprite.Height);
 
-        _enemyPool =  new Queue<Enemy>();
+        _enemyPool = new Queue<Enemy>();
         _activeEnemies = new List<Enemy>();
+
+        enemiesToRemoveNow = new List<Enemy>();
 
         for (int i = 0; i < 100; i++)
         {
             bool fromLeft = (i % 2 == 0);
-            bool layerChangerLogc = (i % 3 == 0);
+            bool layerChangerLogic = (i % 3 == 0);
 
             float initialX = fromLeft ? 100 : 1200;
             float offsetX = i * 150;
 
             Vector2 position = new Vector2(initialX, 270);
-
             position.X += fromLeft ? -offsetX : offsetX;
 
             SpriteEffects effect = fromLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
-            float enemyLayer = layerChangerLogc ? 0.3f : 0.6f;
+            float enemyLayer = layerChangerLogic ? 0.3f : 0.6f;
 
             var enemy = new Enemy(_graphicsAltas, position, enemyLayer, effect);
             _enemyPool.Enqueue(enemy); 
@@ -130,11 +128,26 @@ public class RoxxiWaitingGame : Game
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
 
-      
         KeyboardManager.Update();
 
-        _elapsedTime += (float)gameTime.ElapsedGameTime.TotalSeconds;
-        _roxxi.Update(gameTime);
+        if(KeyboardManager.HasBeenPressed(Keys.B)){
+            _debugMode = !_debugMode;
+        }
+
+        float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        _elapsedTime += deltaTime;
+
+        if (_elapsedTime > _currentSpawnDelay && _activeEnemies.Count < MAX_ACTIVE_ENEMIES)
+        {
+            if (_enemyPool.Count > 0)
+            {
+                var enemy = _enemyPool.Dequeue(); 
+                _activeEnemies.Add(enemy);       
+                _elapsedTime = 0f;               
+
+                _currentSpawnDelay = Math.Max(_currentSpawnDelay - SPAWN_ACCELERATION, MIN_SPAWN_DELAY);
+            }
+        }
 
         if (KeyboardManager.HasBeenPressed(Keys.Space) && !_isAttacking) 
         {
@@ -152,32 +165,13 @@ public class RoxxiWaitingGame : Game
                 _scythe.Rotation = 1.5f; 
             }
 
-            _lastAttackTime = _elapsedTime; 
             _rotationCooldown = 0.5f; 
         }
 
-        if (_isAttacking)
+         if (_rotationCooldown > 0)
         {
-            _attackTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-
-            // time da hitbox sempre será menor do que o da animação de ataque
-            _attackScytheTimerHitbox -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-            if(_attackScytheTimerHitbox <= 0f){
-                _hitting = false;
-            }
-            if (_attackTimer <= 0f)
-            {
-                _isAttacking = false;
-            }
-        }
-
-        // Transição suave 
-        if (_rotationCooldown > 0)
-        {
-            _scythe.Rotation = MathHelper.Lerp(_scythe.Rotation, 0f, 0.1f); // Lerp suaviza o retorno
-            _rotationCooldown -= (float)gameTime.ElapsedGameTime.TotalSeconds; // Decrementa o cooldown
+            _scythe.Rotation = MathHelper.Lerp(_scythe.Rotation, 0f, 0.1f); 
+            _rotationCooldown -= (float)gameTime.ElapsedGameTime.TotalSeconds; 
         }
 
  
@@ -185,73 +179,77 @@ public class RoxxiWaitingGame : Game
 
         if (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally)
         {
-            _scytheHitbox = new Rectangle(
-                (int)(_roxxi.Sprite.Position.X + 160), 
-                (int)_roxxi.Sprite.Position.Y + 70,
-                4,
-                30);
 
-            _scythe.Position = _roxxi.Sprite.Position + offsetHoriFlipFoice;
+            _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X + 160);
+            _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
+
         }
         else
         {
-            _scytheHitbox = new Rectangle(
-                (int)(_roxxi.Sprite.Position.X - 84), 
-                (int)_roxxi.Sprite.Position.Y + 70,
-                4,
-                30
-            );
-
-            _scythe.Position = _roxxi.Sprite.Position + offsetNomeFlipFoice;
+            _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X - 84);
+            _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
         }
 
-      
-        List<Enemy> enemiesToRemove = new List<Enemy>();
+        _scytheHitbox.Width = 4;
+        _scytheHitbox.Height = 30;
 
-   
+        _scythe.Position = _roxxi.Sprite.Position + 
+                        (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally ? _offsetHoriFlipScythe : _offsetNoneFlipScythe);
+
+
         if (_isAttacking)
         {
-            if(_hitting)
-            {
-                foreach (var enemy in _activeEnemies)
-                {
-                    
-                    if (_scytheHitbox.Intersects(enemy.Sprite.GetCollisionRectangle()))
-                    {
-                        Console.WriteLine($"Hit! Enemy at position {enemy.Sprite.Position} removed.");
-                        _activeEnemies.Remove(enemy); 
-                        _enemyPool.Enqueue(enemy);    
-                        break; 
-                    }
-                }
-            } 
+            _attackTimer -= deltaTime;
+            _attackScytheTimerHitbox -= deltaTime;
+
+            if (_attackScytheTimerHitbox <= 0f)
+                _hitting = false;
+
+            if (_attackTimer <= 0f)
+                _isAttacking = false;
         }
 
-
-        // Spawn de inimigos
-        if (_elapsedTime > _currentSpawnDelay && _activeEnemies.Count < MAX_ACTIVE_ENEMIES)
+        // Detect hits
+        if (_hitting)
         {
-            if (_enemyPool.Count > 0)
+            foreach (var enemy in _activeEnemies)
             {
-                var enemy = _enemyPool.Dequeue(); 
-                _activeEnemies.Add(enemy);       
-                _elapsedTime = 0f;               
-
-                
-                _currentSpawnDelay = Math.Max(_currentSpawnDelay - SPAWN_ACCELERATION, MIN_SPAWN_DELAY);
+                if (_scytheHitbox.Intersects(enemy.Sprite.GetCollisionRectangle()) && !_enemiesPendingRemoval.ContainsKey(enemy))
+                {
+                     enemy.IsDeath = true;
+                     enemy.Sprite.color = Color.Red;
+                     enemy.MyDeathEffect = new Random().Next(1, 4);
+                    _enemiesPendingRemoval[enemy] = 1f; 
+                }
             }
         }
 
-        
-        foreach (var item in _activeEnemies)
+        // Process pending removals
+        foreach (var kvp in _enemiesPendingRemoval)
         {
-            item.Update(gameTime);
+            var enemy = kvp.Key;
+
+            enemy.DeathEffect(gameTime);
+            _enemiesPendingRemoval[kvp.Key] -= deltaTime;
+            if (_enemiesPendingRemoval[kvp.Key] <= 0)
+                enemiesToRemoveNow.Add(kvp.Key);
+        }
+
+        foreach (var enemy in enemiesToRemoveNow)
+        {
+            _activeEnemies.Remove(enemy);
+            _enemyPool.Enqueue(enemy);
+            _enemiesPendingRemoval.Remove(enemy);
+        }
+
+        _roxxi.Update(gameTime);
+        foreach (var enemy in _activeEnemies)
+        {
+            enemy.Update(gameTime);
         }
 
         base.Update(gameTime);
     }
-
-
 
     protected override void Draw(GameTime gameTime)
     {
@@ -263,22 +261,31 @@ public class RoxxiWaitingGame : Game
         _cat.Draw(_spriteBatch);
         _scythe.Draw(_spriteBatch);
 
-        foreach (var item in _activeEnemies)
-        {
-            item.Draw(_spriteBatch);
 
-            _spriteBatch.Draw(
-                _collisionTexture, 
-                item.Sprite.GetCollisionRectangle(), 
+
+        foreach (var enemy in _activeEnemies)
+        {
+            enemy.Draw(_spriteBatch);
+
+            if(_debugMode){
+                _spriteBatch.Draw(
+                _collisionTexture,
+                enemy.Sprite.GetCollisionRectangle(),
                 Color.White * 0.5f
             );
+            }
+   
         }
 
-        _spriteBatch.Draw(
+        if (_debugMode)
+        {
+            _spriteBatch.Draw(
             _collisionTexture,
             _scytheHitbox,
-            Color.Blue
+            Color.Blue * 0.5f
         );
+        } 
+
 
         _spriteBatch.End();
         base.Draw(gameTime);
