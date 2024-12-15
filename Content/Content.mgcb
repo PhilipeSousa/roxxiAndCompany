@@ -25,3 +25,10 @@
 /processorParam:TextureFormat=Color
 /build:F_Grafics.png
 
+#begin FreeMono.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:FreeMono.spritefont
+

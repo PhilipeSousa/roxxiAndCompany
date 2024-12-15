@@ -22,6 +22,8 @@ namespace RoxxiWaiting.Entities
         public bool IsDeath = false; 
         public int MyDeathEffect {get; set;} = -1;
 
+        public Color animDeathColor;
+
         public Enemy(Texture2D mainAtlas, Vector2 position, float layer, SpriteEffects spriteEffectsflip)
         {
             Position = position;
@@ -38,7 +40,19 @@ namespace RoxxiWaiting.Entities
 
         public override void Update(GameTime gameTime)
         {
-          float delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            float delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+            Sprite.UpdateRectangle();
+            
+            if(IsDeath)
+            {
+                    if (MyDeathEffect > 0)
+                    {
+                        DeathEffect(gameTime);
+                    }
+                return;
+            }
+
 
             if (_isPaused)
             {
@@ -46,11 +60,7 @@ namespace RoxxiWaiting.Entities
                 if (_pauseTimer <= 0) _isPaused = false; 
                 return;
             }
-            
-            if(IsDeath)
-            {
-                return;
-            }
+
 
             _moveDelta = delta * MovementSpeed;
             _auxPos = Vector2.Zero;
@@ -110,7 +120,7 @@ namespace RoxxiWaiting.Entities
                 // Fade out all
                 case 1: 
                     Sprite.Rotation += MathHelper.ToRadians(10f); 
-                    Sprite.color *= 0.95f;
+                    //Sprite.color *= 0.95f;
                     break;
 
                 case 2: 
@@ -119,15 +129,16 @@ namespace RoxxiWaiting.Entities
                         (float)(new Random().NextDouble() - 4)
                     );
                     Sprite.Position += randomDirection * 100f * delta; 
-                    Sprite.color *= 0.95f; 
+                    //Sprite.color *= 0.95f; 
                     break;
 
                 case 3: 
                     Sprite.Rotation += MathHelper.ToRadians(20f) * delta; 
                     Sprite.Position += new Vector2((float)Math.Cos(Sprite.Rotation), -1f) * 50f * delta; 
-                    Sprite.color *= 0.95f; 
+                    //Sprite.color *= 0.95f; 
                     break;
             }
+ 
         }
 
     }

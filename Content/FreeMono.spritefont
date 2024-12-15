@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XnaContent xmlns:Graphics="Microsoft.Xna.Framework.Content.Pipeline.Graphics">
+  <Asset Type="Graphics:FontDescription">
+
+    <!-- Nome da fonte que você está importando -->
+    <FontName>FreeMono</FontName>
+
+    <!-- Tamanho da fonte -->
+    <Size>24</Size>
+
+    <!-- Espaçamento entre caracteres -->
+    <Spacing>0</Spacing>
+
+    <!-- Usar kerning para ajustar o espaçamento entre letras -->
+    <UseKerning>true</UseKerning>
+
+    <!-- Estilo da fonte (Regular, Bold, Italic, etc.) -->
+    <Style>Bold</Style>
+
+    <CharacterRegions>
+      <CharacterRegion>
+        <Start>&#32;</Start>
+        <End>&#126;</End>
+      </CharacterRegion>
+    </CharacterRegions>
+  </Asset>
+</XnaContent>

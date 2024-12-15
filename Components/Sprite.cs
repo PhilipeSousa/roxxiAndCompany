@@ -13,6 +13,7 @@ namespace RoxxiWaiting.Components
         public int Sprite_Height_OntheMainAtlas { get; set; }
         public Vector2 Position { get; set; }
         public Rectangle RectangleSprite;
+        public Rectangle HitBox;
         public SpriteEffects SpriteEffects_Flip {get; set; } = SpriteEffects.None;
         public Color color {get; set;} = Color.White;
         public float Rotation {get; set;} = 0f;
@@ -35,18 +36,17 @@ namespace RoxxiWaiting.Components
 
             RectangleSprite = new Rectangle(X_InitialPositionOnTheMainAtlas, Y_InitialPositionOnTheMainAtlas, 
                         Sprite_Width_OntheMainAtlas, Sprite_Height_OntheMainAtlas);
-
+            
+            HitBox = new Rectangle(X_InitialPositionOnTheMainAtlas, Y_InitialPositionOnTheMainAtlas, 
+                        Sprite_Width_OntheMainAtlas, Sprite_Height_OntheMainAtlas);
         }
 
-
-        public Rectangle GetCollisionRectangle()
+        public void UpdateRectangle()
         {
-            return new Rectangle(
-                (int)Position.X, 
-                (int)Position.Y, 
-                RectangleSprite.Width, 
-                RectangleSprite.Height
-            );
+            HitBox.X = (int)Position.X;
+            HitBox.Y = (int)Position.Y;
+            HitBox.Width = (int)(Sprite_Width_OntheMainAtlas * Scale);
+            HitBox.Height = (int)(Sprite_Height_OntheMainAtlas * Scale);
         }
 
 
