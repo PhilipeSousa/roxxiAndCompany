@@ -30,8 +30,28 @@ namespace RoxxiWaiting.Entities
 
             Movement = Vector2.Zero;
 
-            if (state.IsKeyDown(Keys.A) || state.IsKeyDown(Keys.Left)) Movement.X -= delta;
-            if (state.IsKeyDown(Keys.D) || state.IsKeyDown(Keys.Right)) Movement.X += delta;
+            if (state.IsKeyDown(Keys.A) || state.IsKeyDown(Keys.Left))
+            {
+                if( Sprite.Position.X + Movement.X <= -10)
+                {
+                    Movement.X = Movement.X + 0f;
+                }else
+                {
+                    Movement.X -= delta;
+                }
+            } 
+            
+            if (state.IsKeyDown(Keys.D) || state.IsKeyDown(Keys.Right))
+            {
+                if (Sprite.Position.X + Movement.X >= 1300)
+                {
+                    Movement.X = Movement.X + 0f;
+                }else
+                {
+                    Movement.X += delta;
+                }
+        
+            } 
    
 
             // Flip e rotação

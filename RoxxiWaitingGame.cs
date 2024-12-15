@@ -44,12 +44,13 @@ public class RoxxiWaitingGame : Game
     private Rectangle _scytheHitbox;
 
     private bool _hit;
-
+    private SpriteFont _freeMonoFont;
     private float _durationHitboxScythe;
     private float _attackScytheTimerHitbox;
     private float _deathTimer;
     private float _deathTimerDuration;
     private bool _playAnimDeathEnemy;
+    private int _score;
 
     private static Random _random;
 
@@ -75,6 +76,7 @@ public class RoxxiWaitingGame : Game
        
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _graphicsAltas = Content.Load<Texture2D>(ASSETS_GRAPHICS_NAME);
+        _freeMonoFont = Content.Load<SpriteFont>(FONT_FREE_MONO);
 
         _backgroundPostion = new Vector2(-192, 0);
         _background = new Sprite(_graphicsAltas, 0, 0, _graphicsAltas.Width, _graphicsAltas.Height, _backgroundPostion);
@@ -99,9 +101,6 @@ public class RoxxiWaitingGame : Game
         _offsetNoneFlipScythe = new Vector2(-5, 80);
         _offsetHoriFlipScythe = new Vector2(90, 80); 
 
-        //enemy1 = new Enemy(_graphicsAltas, new Vector2(100, 274), 0.4f, SpriteEffects.None);
-        //enemy2 = new Enemy(_graphicsAltas, new Vector2(1200, 274), 0.6f, SpriteEffects.FlipHorizontally);
-
         _collisionTexture = new Texture2D(GraphicsDevice, 1, 1);
         //_collisionTexture.SetData(new[] { Color.Red });
 
@@ -117,9 +116,13 @@ public class RoxxiWaitingGame : Game
 
          _enemies = new List<Enemy>();
 
-         _enemies.Add(new Enemy(_graphicsAltas, new Vector2(100, 274), 0.4f, SpriteEffects.None));
-         _enemies.Add(new Enemy(_graphicsAltas, new Vector2(1200, 274), 0.6f, SpriteEffects.FlipHorizontally));
-
+         for (int i = 0; i <= 100; i++){
+            bool aux = (i%2==0);
+            if (aux) 
+                _enemies.Add(new Enemy(_graphicsAltas, new Vector2(100, 274), 0.4f, SpriteEffects.None));
+            else
+                _enemies.Add(new Enemy(_graphicsAltas, new Vector2(1200, 274), 0.6f, SpriteEffects.FlipHorizontally));
+         }
 
 
     }
@@ -192,16 +195,19 @@ public class RoxxiWaitingGame : Game
 
 
         if (_hit){
-            foreach (var enemy in _enemies)
+
+    
+            foreach (var enemy in _enemies.ToList())
             {
-                if (_scytheHitbox.Intersects(enemy.Sprite.HitBox))
+                if (_scytheHitbox.Intersects(enemy.Sprite.HitBox)  && ! enemy.IsDeath)
                 {
                     Console.WriteLine("Hitou o inimigo");
                     enemy.IsDeath = true;
+                    Score();
                     _playAnimDeathEnemy = true;
                     enemy.Sprite.color = Color.Red;
                     enemy.MyDeathEffect = 2;
-                    enemy.DeathEffect(gameTime);
+                    //enemy.DeathEffect(gameTime);
                     _deathTimer = _deathTimerDuration;
                 }
             }
@@ -225,12 +231,16 @@ public class RoxxiWaitingGame : Game
             }
             else
             {
-                enemy.Update(gameTime); // Atualizar inimigo vivo
+                enemy.Update(gameTime); 
             }
         }
         base.Update(gameTime);
     }
 
+    private void Score()
+    {
+        _score++;
+    }
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.Black);
@@ -242,6 +252,9 @@ public class RoxxiWaitingGame : Game
 
         _cat.Draw(_spriteBatch);
         _scythe.Draw(_spriteBatch);
+
+        _spriteBatch.DrawString(_freeMonoFont, $"Score: {_score}", new Vector2(WIDTH_WINDOW/2, 10), Color.Black, 
+                0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
 
         _spriteBatch.Draw(
                 _collisionTexture, 

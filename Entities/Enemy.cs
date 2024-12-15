@@ -120,7 +120,7 @@ namespace RoxxiWaiting.Entities
                 // Fade out all
                 case 1: 
                     Sprite.Rotation += MathHelper.ToRadians(10f); 
-                    //Sprite.color *= 0.95f;
+                    Sprite.color *= 0.95f;
                     break;
 
                 case 2: 
@@ -129,13 +129,13 @@ namespace RoxxiWaiting.Entities
                         (float)(new Random().NextDouble() - 4)
                     );
                     Sprite.Position += randomDirection * 100f * delta; 
-                    //Sprite.color *= 0.95f; 
+                    Sprite.color *= 0.95f; 
                     break;
 
                 case 3: 
                     Sprite.Rotation += MathHelper.ToRadians(20f) * delta; 
                     Sprite.Position += new Vector2((float)Math.Cos(Sprite.Rotation), -1f) * 50f * delta; 
-                    //Sprite.color *= 0.95f; 
+                    Sprite.color *= 0.95f; 
                     break;
             }
  
