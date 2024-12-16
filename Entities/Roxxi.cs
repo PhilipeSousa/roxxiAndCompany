@@ -43,7 +43,7 @@ namespace RoxxiWaiting.Entities
             
             if (state.IsKeyDown(Keys.D) || state.IsKeyDown(Keys.Right))
             {
-                if (Sprite.Position.X + Movement.X >= 1300)
+                if (Sprite.Position.X + Movement.X >= 1330)
                 {
                     Movement.X = Movement.X + 0f;
                 }else

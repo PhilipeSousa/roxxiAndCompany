@@ -20,10 +20,15 @@ namespace RoxxiWaiting.Entities
         private Vector2 _auxPos;
         private Random _random = new Random();
         public bool IsDeath = false; 
+        public Vector2 effect1_var;
+        public Vector2 effect3_var;
         public int MyDeathEffect {get; set;} = -1;
 
-        public Color animDeathColor;
-
+        public Vector2 randomDirection = new Vector2(
+                        (float)(new Random().NextDouble() - 4), 
+                        (float)(new Random().NextDouble() - 4)
+                    );
+        
         public Enemy(Texture2D mainAtlas, Vector2 position, float layer, SpriteEffects spriteEffectsflip)
         {
             Position = position;
@@ -31,6 +36,9 @@ namespace RoxxiWaiting.Entities
             Sprite.Layer = layer;
             MovementSpeed = 100f;
             Sprite.SpriteEffects_Flip = spriteEffectsflip;
+            effect1_var = new Vector2(Sprite.Position.X, 300);
+            effect3_var =  new Vector2((float)Math.Cos(Sprite.Rotation), -1f);
+            
         }
 
         public override void Draw(SpriteBatch spriteBatch)
@@ -41,8 +49,6 @@ namespace RoxxiWaiting.Entities
         public override void Update(GameTime gameTime)
         {
             float delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-            Sprite.UpdateRectangle();
             
             if(IsDeath)
             {
@@ -51,6 +57,8 @@ namespace RoxxiWaiting.Entities
                         DeathEffect(gameTime);
                     }
                 return;
+            }else{
+                Sprite.UpdateRectangle();
             }
 
 
@@ -119,23 +127,19 @@ namespace RoxxiWaiting.Entities
             {
                 // Fade out all
                 case 1: 
-                    Sprite.Rotation += MathHelper.ToRadians(10f); 
-                    Sprite.color *= 0.95f;
+                    Sprite.Position = Vector2.Lerp(Sprite.Position, effect1_var, 1f * delta);; 
+                    Sprite.color *= 0.97f;
                     break;
 
                 case 2: 
-                    Vector2 randomDirection = new Vector2(
-                        (float)(new Random().NextDouble() - 4), 
-                        (float)(new Random().NextDouble() - 4)
-                    );
                     Sprite.Position += randomDirection * 100f * delta; 
-                    Sprite.color *= 0.95f; 
+                    Sprite.color *= 0.97f; 
                     break;
 
                 case 3: 
                     Sprite.Rotation += MathHelper.ToRadians(20f) * delta; 
-                    Sprite.Position += new Vector2((float)Math.Cos(Sprite.Rotation), -1f) * 50f * delta; 
-                    Sprite.color *= 0.95f; 
+                    Sprite.Position += effect3_var * 50f * delta; 
+                    Sprite.color *= 0.97f; 
                     break;
             }
  

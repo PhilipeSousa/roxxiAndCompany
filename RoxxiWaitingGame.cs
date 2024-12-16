@@ -116,13 +116,23 @@ public class RoxxiWaitingGame : Game
 
          _enemies = new List<Enemy>();
 
-         for (int i = 0; i <= 100; i++){
-            bool aux = (i%2==0);
-            if (aux) 
-                _enemies.Add(new Enemy(_graphicsAltas, new Vector2(100, 274), 0.4f, SpriteEffects.None));
-            else
-                _enemies.Add(new Enemy(_graphicsAltas, new Vector2(1200, 274), 0.6f, SpriteEffects.FlipHorizontally));
-         }
+         for (int i = 0; i < 20; i++)
+        {
+            bool fromLeft = (i % 2 == 0);
+            bool layerChangerLogic = (i % 3 == 0);
+
+            float initialX = fromLeft ? 100 : 1200;
+            float offsetX = i * 150;
+
+            Vector2 position = new Vector2(initialX, 270);
+            position.X += fromLeft ? -offsetX : offsetX;
+
+            SpriteEffects effect = fromLeft ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
+            float enemyLayer = layerChangerLogic ? 0.3f : 0.6f;
+
+            var enemy = new Enemy(_graphicsAltas, position, enemyLayer, effect);
+            _enemies.Add(enemy);
+        }
 
 
     }
@@ -185,10 +195,8 @@ public class RoxxiWaitingGame : Game
             _attackScytheTimerHitbox -= deltaTime;
 
     
-            if (_attackTimer <= 0f)
-                _isAttacking = false;
-            if (_attackScytheTimerHitbox <= 0f)
-                _hit = false;
+            if (_attackTimer <= 0f) _isAttacking = false;
+            if (_attackScytheTimerHitbox <= 0f) _hit = false;
         }
 
         _roxxi.Update(gameTime);
@@ -206,15 +214,13 @@ public class RoxxiWaitingGame : Game
                     Score();
                     _playAnimDeathEnemy = true;
                     enemy.Sprite.color = Color.Red;
-                    enemy.MyDeathEffect = 2;
-                    //enemy.DeathEffect(gameTime);
+                    enemy.MyDeathEffect = _random.Next(1, 4);
                     _deathTimer = _deathTimerDuration;
                 }
             }
             
         }
-        if(_playAnimDeathEnemy) {
-            _deathTimer -= deltaTime;}
+        if(_playAnimDeathEnemy) _deathTimer -= deltaTime;
 
         foreach (var enemy in _enemies.ToList())
         {
@@ -271,6 +277,7 @@ public class RoxxiWaitingGame : Game
         {
             item.Draw(_spriteBatch);
         }
+
   
         _spriteBatch.End();
         base.Draw(gameTime);
