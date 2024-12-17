@@ -84,19 +84,17 @@ public class RoxxiWaitingGame : Game
         _splashScreen = new Sprite(_graphicsAltas, 0, 0, 70, 70, new Vector2(WIDTH_WINDOW/2, HEIGHT_WINDOW/2));
         _splashScreen.Layer = 0f;
 
-        // Inicialize o flag e o timer
         _isLoadingComplete = false;
         _splashTimer = 0f;
 
-        // Inicie uma thread para carregar os recursos do jogo em segundo plano
         _loadingThread = new Thread(LoadGameContent);
         _loadingThread.Start();
     }
 
     private void LoadGameContent()
     {
-        // Simule um carregamento pesado (coloque um delay fictício para testes)
-        Thread.Sleep(2000);
+        
+         Thread.Sleep(2000);
          _spriteBatch = new SpriteBatch(GraphicsDevice);
         _graphicsAltas = Content.Load<Texture2D>(ASSETS_GRAPHICS_NAME);
         _freeMonoFont = Content.Load<SpriteFont>(FONT_FREE_MONO);
