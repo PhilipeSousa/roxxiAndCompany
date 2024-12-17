@@ -11,8 +11,8 @@ namespace RoxxiWaiting.Entities
     {
         private const double CHANCE_TO_FLIP = 0.0025; 
         private const double CHANCE_TO_STOP = 0.0015;     
-        private bool _isPaused = false;      
-        private float _pauseTimer = 0f;   
+        public bool _isPaused = false;      
+        public float _pauseTimer = 0f;   
         private float _MAXpauseDuration = 3f;
         private float _moveDelta;
         public float RightlimitTotheEnemy = -100f;
@@ -27,7 +27,6 @@ namespace RoxxiWaiting.Entities
                         (float)(new Random().NextDouble() - 4), 
                         (float)(new Random().NextDouble() - 4)
                     );
-
         public Vector2 effect1 = new Vector2();
         
         public Enemy(Texture2D mainAtlas, Vector2 position, float layer, SpriteEffects spriteEffectsflip)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -42,10 +43,20 @@ public class RoxxiWaitingGame : Game
     private float _deathTimerDuration;
     private bool _playAnimDeathEnemy;
     private int _score;
+    private bool fromLeftReset;
+    private float baseX;
+    private Vector2 newPositionResetEnemy;
 
     private static Random _random;
 
     private List<Enemy> _enemies;
+
+    private bool _isLoadingComplete;       // Flag para indicar se o carregamento terminou
+    private Sprite _splashScreen;       // Tela inicial do desenvolvedor
+    private Thread _loadingThread;         // Thread para carregar recursos em paralelo
+    private float _splashTimer;            // Timer para controlar a duração da splash screen
+    private float _splashDuration = 3f;    // Duração da splash screen (3 segundos)
+
 
     public RoxxiWaitingGame()
     {
@@ -68,11 +79,25 @@ public class RoxxiWaitingGame : Game
        
     }
 
-
     protected override void LoadContent()
     {   
-       
-        _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _splashScreen = new Sprite(_graphicsAltas, 0, 0, 70, 70, new Vector2(WIDTH_WINDOW/2, HEIGHT_WINDOW/2));
+        _splashScreen.Layer = 0f;
+
+        // Inicialize o flag e o timer
+        _isLoadingComplete = false;
+        _splashTimer = 0f;
+
+        // Inicie uma thread para carregar os recursos do jogo em segundo plano
+        _loadingThread = new Thread(LoadGameContent);
+        _loadingThread.Start();
+    }
+
+    private void LoadGameContent()
+    {
+        // Simule um carregamento pesado (coloque um delay fictício para testes)
+        Thread.Sleep(2000);
+         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _graphicsAltas = Content.Load<Texture2D>(ASSETS_GRAPHICS_NAME);
         _freeMonoFont = Content.Load<SpriteFont>(FONT_FREE_MONO);
 
@@ -109,11 +134,23 @@ public class RoxxiWaitingGame : Game
         _deathTimer = 0f;
         _deathTimerDuration = 3f;
 
-         _random = new Random();
+        _random = new Random();
+        _enemies = new List<Enemy>();
 
-         _enemies = new List<Enemy>();
+        SpawnEnemies();
 
-         for (int i = 0; i < 120; i++)
+        fromLeftReset = (new Random().Next(0, 2) == 0);
+        baseX = fromLeftReset ? -100 : 1550;
+        newPositionResetEnemy = new Vector2(baseX, 270);
+
+        // Outras inicializações
+        _isLoadingComplete = true; 
+}
+
+
+    private void SpawnEnemies()
+    {
+        for (int i = 0; i < 111; i++)
         {
             bool fromLeft = (i % 2 == 0);
             bool layerChangerLogic = (i % 3 == 0);
@@ -130,9 +167,29 @@ public class RoxxiWaitingGame : Game
             var enemy = new Enemy(_graphicsAltas, position, enemyLayer, effect);
             _enemies.Add(enemy);
         }
-
-
     }
+
+    private void Score()
+    {
+        _score++;
+    }
+
+    private void ResetEnemy(Enemy enemy)
+    {
+
+        enemy.Sprite.Position = newPositionResetEnemy;
+        enemy.Sprite.SpriteEffects_Flip = fromLeftReset ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
+
+        enemy._isPaused = false;
+        enemy._pauseTimer = 0f;
+        enemy.IsDeath = false;
+        enemy.MyDeathEffect = -1;
+        enemy.Sprite.color = Color.White; 
+
+        _enemies.Add(enemy);
+    }
+
+
     protected override void Update(GameTime gameTime)
     {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -140,139 +197,161 @@ public class RoxxiWaitingGame : Game
 
         KeyboardManager.Update();
 
-        float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-        if (KeyboardManager.HasBeenPressed(Keys.Space) && !_isAttacking) 
+        if (!_isLoadingComplete)
         {
-            _isAttacking = true;
-            _hit = true;
-            _attackTimer = _attackDuration;
-            _attackScytheTimerHitbox = _durationHitboxScythe;
+            // Enquanto os recursos não foram carregados, atualize o timer da splash screen
+            _splashTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            if (_roxxi.Sprite.SpriteEffects_Flip == SpriteEffects.None)
+            if (_splashTimer >= _splashDuration)
             {
-                _scythe.Rotation = -1.5f; 
+                _splashTimer = _splashDuration;
             }
-            else
-            {
-                _scythe.Rotation = 1.5f; 
-            }
-
-            _rotationCooldown = 0.5f; 
-        }
-
-        if (_rotationCooldown > 0)
-        {
-            _scythe.Rotation = MathHelper.Lerp(_scythe.Rotation, 0f, 0.1f); 
-            _rotationCooldown -= deltaTime; 
-        }
-
-        _scythe.SpriteEffects_Flip = _roxxi.Sprite.SpriteEffects_Flip;
-
-        if (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally)
-        {
-            _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X + 160);
-            _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
         }
         else
         {
-            _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X - 84);
-            _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
-        }
+            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-        _scytheHitbox.Width = 4;
-        _scytheHitbox.Height = 30;
-
-        _scythe.Position = _roxxi.Sprite.Position + 
-                        (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally ? _offsetHoriFlipScythe : _offsetNoneFlipScythe);
-
-        if (_isAttacking)
-        {
-            _attackTimer -= deltaTime;
-            _attackScytheTimerHitbox -= deltaTime;
-
-    
-            if (_attackTimer <= 0f) _isAttacking = false;
-            if (_attackScytheTimerHitbox <= 0f) _hit = false;
-        }
-
-        _roxxi.Update(gameTime);
-
-
-        if (_hit){
-            foreach( var enemy in _enemies.ToList()){
-                if (_scytheHitbox.Intersects(enemy.Sprite.HitBox) && !enemy.IsDeath)
-                {
-                    Console.WriteLine("Hitou o inimigo");
-                    enemy.IsDeath = true;
-                    Score();
-                    _playAnimDeathEnemy = true;
-                    enemy.Sprite.color = Color.Red;
-                    enemy.MyDeathEffect = _random.Next(1, 4);
-                    _deathTimer = _deathTimerDuration;
-                }
-            }
-        
-        }
-        if(_playAnimDeathEnemy) _deathTimer -= deltaTime;
-
-        foreach (var enemy in _enemies.ToList())
-        {
-            if (enemy.IsDeath)
+            if (KeyboardManager.HasBeenPressed(Keys.Space) && !_isAttacking) 
             {
-                if (_deathTimer <= 0f)
+                _isAttacking = true;
+                _hit = true;
+                _attackTimer = _attackDuration;
+                _attackScytheTimerHitbox = _durationHitboxScythe;
+
+                if (_roxxi.Sprite.SpriteEffects_Flip == SpriteEffects.None)
                 {
-                    _enemies.Remove(enemy); 
+                    _scythe.Rotation = -1.5f; 
                 }
                 else
                 {
-                    enemy.DeathEffect(gameTime); 
+                    _scythe.Rotation = 1.5f; 
                 }
+
+                _rotationCooldown = 0.5f; 
+            }
+
+            if (_rotationCooldown > 0)
+            {
+                _scythe.Rotation = MathHelper.Lerp(_scythe.Rotation, 0f, 0.1f); 
+                _rotationCooldown -= deltaTime; 
+            }
+
+            _scythe.SpriteEffects_Flip = _roxxi.Sprite.SpriteEffects_Flip;
+
+            if (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally)
+            {
+                _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X + 160);
+                _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
             }
             else
             {
-                enemy.Update(gameTime); 
+                _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X - 84);
+                _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
             }
+
+            _scytheHitbox.Width = 4;
+            _scytheHitbox.Height = 30;
+
+            _scythe.Position = _roxxi.Sprite.Position + 
+                            (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally ? _offsetHoriFlipScythe : _offsetNoneFlipScythe);
+
+            if (_isAttacking)
+            {
+                _attackTimer -= deltaTime;
+                _attackScytheTimerHitbox -= deltaTime;
+
+        
+                if (_attackTimer <= 0f) _isAttacking = false;
+                if (_attackScytheTimerHitbox <= 0f) _hit = false;
+            }
+
+            _roxxi.Update(gameTime);
+
+
+            if (_hit){
+                foreach( var enemy in _enemies.ToList()){
+                    if (_scytheHitbox.Intersects(enemy.Sprite.HitBox) && !enemy.IsDeath)
+                    {
+
+                        enemy.IsDeath = true;
+                        Score();
+                        _playAnimDeathEnemy = true;
+                        enemy.Sprite.color = Color.Red;
+                        enemy.MyDeathEffect = _random.Next(1, 4);
+                        _deathTimer = _deathTimerDuration;
+                    }
+                }
+            
+            }
+            if(_playAnimDeathEnemy) _deathTimer -= deltaTime;
+
+            foreach (var enemy in _enemies.ToList())
+            {
+                if (enemy.IsDeath)
+                {
+                    if (_deathTimer <= 0f)
+                    {
+                        _enemies.Remove(enemy);
+                        ResetEnemy(enemy);
+                    }
+                    else
+                    {
+                        enemy.DeathEffect(gameTime); 
+                    }
+                }
+                else
+                {
+                    enemy.Update(gameTime); 
+                }
+            }
+            base.Update(gameTime);
         }
-        base.Update(gameTime);
+        
     }
 
-    private void Score()
-    {
-        _score++;
-    }
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(Color.Black);
-        
+         GraphicsDevice.Clear(Color.Black);
+
         _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend);
 
-        _background.Draw(_spriteBatch);
-        _roxxi.Draw(_spriteBatch);
-
-        _cat.Draw(_spriteBatch);
-        _scythe.Draw(_spriteBatch);
-
-        _spriteBatch.DrawString(_freeMonoFont, $"Score: {_score}", SCORE_POSITION, Color.Aqua, 
-                0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
-
-        _spriteBatch.Draw(
-                _collisionTexture, 
-                _scytheHitbox, 
-                null,                 
-                Color.Black, 
-                0f,                   
-                Vector2.Zero,         
-                SpriteEffects.None,   
-                1f                    
-            );
-        
-        foreach (var item in _enemies)
+        if (!_isLoadingComplete)
         {
-            item.Draw(_spriteBatch);
-        }
+            GraphicsDevice.Clear(Color.White);
+            _splashScreen.Draw(_spriteBatch);
+            
 
-  
+        }
+        else
+        {
+            _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend);
+
+            _background.Draw(_spriteBatch);
+            _roxxi.Draw(_spriteBatch);
+
+            _cat.Draw(_spriteBatch);
+            _scythe.Draw(_spriteBatch);
+
+            _spriteBatch.DrawString(_freeMonoFont, $"Score: {_score}", SCORE_POSITION, Color.Aqua, 
+                    0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+
+            _spriteBatch.Draw(
+                    _collisionTexture, 
+                    _scytheHitbox, 
+                    null,                 
+                    Color.Black, 
+                    0f,                   
+                    Vector2.Zero,         
+                    SpriteEffects.None,   
+                    1f                    
+                );
+
+            foreach (var item in _enemies)
+            {
+                item.Draw(_spriteBatch);
+            }
+        }      
+         
         _spriteBatch.End();
         base.Draw(gameTime);
     }
