@@ -20,7 +20,6 @@ namespace RoxxiWaiting.Entities
         private Vector2 _auxPos;
         private Random _random = new Random();
         public bool IsDeath = false; 
-        public Vector2 effect1_var;
         public Vector2 effect3_var;
         public int MyDeathEffect {get; set;} = -1;
 
@@ -28,6 +27,8 @@ namespace RoxxiWaiting.Entities
                         (float)(new Random().NextDouble() - 4), 
                         (float)(new Random().NextDouble() - 4)
                     );
+
+        public Vector2 effect1 = new Vector2();
         
         public Enemy(Texture2D mainAtlas, Vector2 position, float layer, SpriteEffects spriteEffectsflip)
         {
@@ -36,7 +37,6 @@ namespace RoxxiWaiting.Entities
             Sprite.Layer = layer;
             MovementSpeed = 100f;
             Sprite.SpriteEffects_Flip = spriteEffectsflip;
-            effect1_var = new Vector2(Sprite.Position.X, 300);
             effect3_var =  new Vector2((float)Math.Cos(Sprite.Rotation), -1f);
             
         }
@@ -126,8 +126,11 @@ namespace RoxxiWaiting.Entities
             switch (MyDeathEffect)
             {
                 // Fade out all
-                case 1: 
-                    Sprite.Position = Vector2.Lerp(Sprite.Position, effect1_var, 1f * delta);; 
+                case 1:
+                    float oscillation = (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 10) * 5;
+                    effect1.X = oscillation;
+                    effect1.Y = -50f * delta;
+                    Sprite.Position +=  effect1;
                     Sprite.color *= 0.97f;
                     break;
 

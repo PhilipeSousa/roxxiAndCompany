@@ -16,33 +16,24 @@ public class RoxxiWaitingGame : Game
     private const string ASSETS_GRAPHICS_NAME = "F_Grafics";
     private const string FONT_FREE_MONO = "FreeMono";
     private Texture2D _graphicsAltas;
-    public const int WIDTH_WINDOW = 1565 - 192;
+    public const int WIDTH_WINDOW = 1373;
     public const int HEIGHT_WINDOW = 324;
+    public Vector2 SCORE_POSITION = new Vector2(WIDTH_WINDOW/2.2f, 10);
     private Sprite _background;
     private Vector2 _backgroundPostion;
-
     private Sprite _cat;
     private Vector2 _catPosition;
-
     private Roxxi _roxxi;
     private Vector2 _roxxiPosition;
-
     private Sprite _scythe;
     private  bool _isAttacking;
     private float _attackDuration;
     private float _attackTimer;
     private float _rotationCooldown;
-
     private Vector2 _offsetNoneFlipScythe;
     private Vector2 _offsetHoriFlipScythe;
-
-    //private Enemy enemy1;
-    //private Enemy enemy2;
-
     private Texture2D _collisionTexture;
-
     private Rectangle _scytheHitbox;
-
     private bool _hit;
     private SpriteFont _freeMonoFont;
     private float _durationHitboxScythe;
@@ -66,10 +57,17 @@ public class RoxxiWaitingGame : Game
     protected override void Initialize()
     {
         base.Initialize();
-        _graphics.PreferredBackBufferHeight = HEIGHT_WINDOW;
+        
         _graphics.PreferredBackBufferWidth = WIDTH_WINDOW;
+        _graphics.PreferredBackBufferHeight = HEIGHT_WINDOW;
+        
         _graphics.ApplyChanges();
+        _graphics.IsFullScreen = false;
+        Window.AllowUserResizing = false;
+        Window.Title = "Roxxi Waiting";  
+       
     }
+
 
     protected override void LoadContent()
     {   
@@ -102,7 +100,6 @@ public class RoxxiWaitingGame : Game
         _offsetHoriFlipScythe = new Vector2(90, 80); 
 
         _collisionTexture = new Texture2D(GraphicsDevice, 1, 1);
-        //_collisionTexture.SetData(new[] { Color.Red });
 
         _hit = false;
         _durationHitboxScythe = 0.02f; // menos que isso vai dar merda
@@ -116,12 +113,12 @@ public class RoxxiWaitingGame : Game
 
          _enemies = new List<Enemy>();
 
-         for (int i = 0; i < 20; i++)
+         for (int i = 0; i < 120; i++)
         {
             bool fromLeft = (i % 2 == 0);
             bool layerChangerLogic = (i % 3 == 0);
 
-            float initialX = fromLeft ? 100 : 1200;
+            float initialX = fromLeft ? -50 : 1400;
             float offsetX = i * 150;
 
             Vector2 position = new Vector2(initialX, 270);
@@ -203,11 +200,8 @@ public class RoxxiWaitingGame : Game
 
 
         if (_hit){
-
-    
-            foreach (var enemy in _enemies.ToList())
-            {
-                if (_scytheHitbox.Intersects(enemy.Sprite.HitBox)  && ! enemy.IsDeath)
+            foreach( var enemy in _enemies.ToList()){
+                if (_scytheHitbox.Intersects(enemy.Sprite.HitBox) && !enemy.IsDeath)
                 {
                     Console.WriteLine("Hitou o inimigo");
                     enemy.IsDeath = true;
@@ -218,7 +212,7 @@ public class RoxxiWaitingGame : Game
                     _deathTimer = _deathTimerDuration;
                 }
             }
-            
+        
         }
         if(_playAnimDeathEnemy) _deathTimer -= deltaTime;
 
@@ -259,7 +253,7 @@ public class RoxxiWaitingGame : Game
         _cat.Draw(_spriteBatch);
         _scythe.Draw(_spriteBatch);
 
-        _spriteBatch.DrawString(_freeMonoFont, $"Score: {_score}", new Vector2(WIDTH_WINDOW/2, 10), Color.Black, 
+        _spriteBatch.DrawString(_freeMonoFont, $"Score: {_score}", SCORE_POSITION, Color.Aqua, 
                 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
 
         _spriteBatch.Draw(
