@@ -51,11 +51,13 @@ public class RoxxiWaitingGame : Game
 
     private List<Enemy> _enemies;
 
-    private bool _isLoadingComplete;       // Flag para indicar se o carregamento terminou
-    private Sprite _splashScreen;       // Tela inicial do desenvolvedor
-    private Thread _loadingThread;         // Thread para carregar recursos em paralelo
-    private float _splashTimer;            // Timer para controlar a duração da splash screen
-    private float _splashDuration = 3f;    // Duração da splash screen (3 segundos)
+    private bool _isLoadingComplete;
+    private Sprite _splashScreen;       
+    private Thread _loadingThread;         
+    private float _splashTimer;           
+    private float _splashDuration = 3f;
+
+    private Vector2 _logoPosition;    
 
 
     public RoxxiWaitingGame()
@@ -81,11 +83,14 @@ public class RoxxiWaitingGame : Game
 
     protected override void LoadContent()
     {   
-        _splashScreen = new Sprite(_graphicsAltas, 0, 0, 70, 70, new Vector2(WIDTH_WINDOW/2, HEIGHT_WINDOW/2));
+        _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _graphicsAltas = Content.Load<Texture2D>(ASSETS_GRAPHICS_NAME);
+        _freeMonoFont = Content.Load<SpriteFont>(FONT_FREE_MONO);
+        _splashScreen = new Sprite(_graphicsAltas, 0, 0, 120, 125, new Vector2(WIDTH_WINDOW/3f, HEIGHT_WINDOW/3f));
         _splashScreen.Layer = 0f;
-
         _isLoadingComplete = false;
         _splashTimer = 0f;
+        _logoPosition = new Vector2(600, 140);
 
         _loadingThread = new Thread(LoadGameContent);
         _loadingThread.Start();
@@ -93,12 +98,6 @@ public class RoxxiWaitingGame : Game
 
     private void LoadGameContent()
     {
-        
-         Thread.Sleep(2000);
-         _spriteBatch = new SpriteBatch(GraphicsDevice);
-        _graphicsAltas = Content.Load<Texture2D>(ASSETS_GRAPHICS_NAME);
-        _freeMonoFont = Content.Load<SpriteFont>(FONT_FREE_MONO);
-
         _backgroundPostion = new Vector2(-192, 0);
         _background = new Sprite(_graphicsAltas, 0, 0, _graphicsAltas.Width, _graphicsAltas.Height, _backgroundPostion);
         _background.Layer = 0f;
@@ -122,8 +121,6 @@ public class RoxxiWaitingGame : Game
         _offsetNoneFlipScythe = new Vector2(-5, 80);
         _offsetHoriFlipScythe = new Vector2(90, 80); 
 
-        _collisionTexture = new Texture2D(GraphicsDevice, 1, 1);
-
         _hit = false;
         _durationHitboxScythe = 0.02f; // menos que isso vai dar merda
         _attackScytheTimerHitbox = 0f;
@@ -140,12 +137,7 @@ public class RoxxiWaitingGame : Game
         fromLeftReset = (new Random().Next(0, 2) == 0);
         baseX = fromLeftReset ? -100 : 1550;
         newPositionResetEnemy = new Vector2(baseX, 270);
-
-        // Outras inicializações
-        _isLoadingComplete = true; 
 }
-
-
     private void SpawnEnemies()
     {
         for (int i = 0; i < 111; i++)
@@ -166,15 +158,12 @@ public class RoxxiWaitingGame : Game
             _enemies.Add(enemy);
         }
     }
-
     private void Score()
     {
         _score++;
     }
-
     private void ResetEnemy(Enemy enemy)
     {
-
         enemy.Sprite.Position = newPositionResetEnemy;
         enemy.Sprite.SpriteEffects_Flip = fromLeftReset ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
 
@@ -186,8 +175,61 @@ public class RoxxiWaitingGame : Game
 
         _enemies.Add(enemy);
     }
+    // FREIO MOTOR FREIAR CO A CAXA DE MARCA, MARCA ENGATADA
+    private void ScytheAnimation(GameTime gameTime)
+    {
+        float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        if (_rotationCooldown > 0)
+        {
+            _scythe.Rotation = MathHelper.Lerp(_scythe.Rotation, 0f, 0.1f); 
+            _rotationCooldown -= deltaTime; 
+        }
+    }
 
+    private void ScytheUpdate()
+    {
+        _scythe.SpriteEffects_Flip = _roxxi.Sprite.SpriteEffects_Flip;
 
+            if (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally)
+            {
+                _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X + 160);
+                _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
+            }
+            else
+            {
+                _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X - 84);
+                _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
+            }
+
+            _scytheHitbox.Width = 4;
+            _scytheHitbox.Height = 30;
+
+            _scythe.Position = _roxxi.Sprite.Position + 
+                            (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally ? _offsetHoriFlipScythe : _offsetNoneFlipScythe);
+    }
+
+    private void RemoveAndResetEnemies(GameTime gameTime)
+    {
+        foreach (var enemy in _enemies.ToList())
+            {
+                if (enemy.IsDeath)
+                {
+                    if (_deathTimer <= 0f)
+                    {
+                        _enemies.Remove(enemy);
+                        ResetEnemy(enemy);
+                    }
+                    else
+                    {
+                        enemy.DeathEffect(gameTime); 
+                    }
+                }
+                else
+                {
+                    enemy.Update(gameTime); 
+                }
+            }
+    }
     protected override void Update(GameTime gameTime)
     {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -197,12 +239,13 @@ public class RoxxiWaitingGame : Game
 
         if (!_isLoadingComplete)
         {
-            // Enquanto os recursos não foram carregados, atualize o timer da splash screen
             _splashTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
             if (_splashTimer >= _splashDuration)
             {
-                _splashTimer = _splashDuration;
+                _splashScreen = null;
+                _loadingThread = null;
+                _isLoadingComplete = true;
             }
         }
         else
@@ -228,30 +271,9 @@ public class RoxxiWaitingGame : Game
                 _rotationCooldown = 0.5f; 
             }
 
-            if (_rotationCooldown > 0)
-            {
-                _scythe.Rotation = MathHelper.Lerp(_scythe.Rotation, 0f, 0.1f); 
-                _rotationCooldown -= deltaTime; 
-            }
 
-            _scythe.SpriteEffects_Flip = _roxxi.Sprite.SpriteEffects_Flip;
-
-            if (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally)
-            {
-                _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X + 160);
-                _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
-            }
-            else
-            {
-                _scytheHitbox.X = (int)(_roxxi.Sprite.Position.X - 84);
-                _scytheHitbox.Y = (int)_roxxi.Sprite.Position.Y + 70;
-            }
-
-            _scytheHitbox.Width = 4;
-            _scytheHitbox.Height = 30;
-
-            _scythe.Position = _roxxi.Sprite.Position + 
-                            (_scythe.SpriteEffects_Flip == SpriteEffects.FlipHorizontally ? _offsetHoriFlipScythe : _offsetNoneFlipScythe);
+            ScytheAnimation(gameTime);
+            ScytheUpdate();                
 
             if (_isAttacking)
             {
@@ -283,25 +305,7 @@ public class RoxxiWaitingGame : Game
             }
             if(_playAnimDeathEnemy) _deathTimer -= deltaTime;
 
-            foreach (var enemy in _enemies.ToList())
-            {
-                if (enemy.IsDeath)
-                {
-                    if (_deathTimer <= 0f)
-                    {
-                        _enemies.Remove(enemy);
-                        ResetEnemy(enemy);
-                    }
-                    else
-                    {
-                        enemy.DeathEffect(gameTime); 
-                    }
-                }
-                else
-                {
-                    enemy.Update(gameTime); 
-                }
-            }
+            RemoveAndResetEnemies(gameTime);
             base.Update(gameTime);
         }
         
@@ -317,13 +321,14 @@ public class RoxxiWaitingGame : Game
         {
             GraphicsDevice.Clear(Color.White);
             _splashScreen.Draw(_spriteBatch);
-            
 
+            _spriteBatch.DrawString(_freeMonoFont, "Dragon's High Soft", _logoPosition, Color.Black, 
+                    0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+            
         }
         else
         {
-            _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend);
-
+        
             _background.Draw(_spriteBatch);
             _roxxi.Draw(_spriteBatch);
 
@@ -332,17 +337,6 @@ public class RoxxiWaitingGame : Game
 
             _spriteBatch.DrawString(_freeMonoFont, $"Score: {_score}", SCORE_POSITION, Color.Aqua, 
                     0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
-
-            _spriteBatch.Draw(
-                    _collisionTexture, 
-                    _scytheHitbox, 
-                    null,                 
-                    Color.Black, 
-                    0f,                   
-                    Vector2.Zero,         
-                    SpriteEffects.None,   
-                    1f                    
-                );
 
             foreach (var item in _enemies)
             {
