@@ -32,3 +32,9 @@
 /processorParam:TextureFormat=Compressed
 /build:FreeMono.spritefont
 
+#begin RetroBlop.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:RetroBlop.wav
+

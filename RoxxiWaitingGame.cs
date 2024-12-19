@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using RoxxiWaiting.Components;
@@ -16,6 +17,7 @@ public class RoxxiWaitingGame : Game
     private SpriteBatch _spriteBatch;
     private const string ASSETS_GRAPHICS_NAME = "F_Grafics";
     private const string FONT_FREE_MONO = "FreeMono";
+    private const string SOUND_EFFECT_HIT = "RetroBlop";
     private Texture2D _graphicsAltas;
     public const int WIDTH_WINDOW = 1373;
     public const int HEIGHT_WINDOW = 324;
@@ -33,7 +35,6 @@ public class RoxxiWaitingGame : Game
     private float _rotationCooldown;
     private Vector2 _offsetNoneFlipScythe;
     private Vector2 _offsetHoriFlipScythe;
-    private Texture2D _collisionTexture;
     private Rectangle _scytheHitbox;
     private bool _hit;
     private SpriteFont _freeMonoFont;
@@ -42,6 +43,7 @@ public class RoxxiWaitingGame : Game
     private float _deathTimer;
     private float _deathTimerDuration;
     private bool _playAnimDeathEnemy;
+    private bool _soundPlayed;
     private int _score;
     private bool fromLeftReset;
     private float baseX;
@@ -52,12 +54,13 @@ public class RoxxiWaitingGame : Game
     private List<Enemy> _enemies;
 
     private bool _isLoadingComplete;
-    private Sprite _splashScreen;       
+    private Texture2D _splashScreen;       
     private Thread _loadingThread;         
     private float _splashTimer;           
     private float _splashDuration = 3f;
-
-    private Vector2 _logoPosition;    
+    private Vector2 _logoPosition;  
+    private Rectangle _logorec;
+    private SoundEffect _soundHit; 
 
 
     public RoxxiWaitingGame()
@@ -74,11 +77,13 @@ public class RoxxiWaitingGame : Game
         _graphics.PreferredBackBufferWidth = WIDTH_WINDOW;
         _graphics.PreferredBackBufferHeight = HEIGHT_WINDOW;
         
-        _graphics.ApplyChanges();
+
+        Environment.SetEnvironmentVariable("ALSOFT_HRTF", "0"); // OpenAL issue with _soundHit
         _graphics.IsFullScreen = false;
         Window.AllowUserResizing = false;
-        Window.Title = "Roxxi Waiting";  
-       
+        Window.Title = "Roxxi Waiting"; 
+
+        _graphics.ApplyChanges();
     }
 
     protected override void LoadContent()
@@ -86,11 +91,12 @@ public class RoxxiWaitingGame : Game
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _graphicsAltas = Content.Load<Texture2D>(ASSETS_GRAPHICS_NAME);
         _freeMonoFont = Content.Load<SpriteFont>(FONT_FREE_MONO);
-        _splashScreen = new Sprite(_graphicsAltas, 0, 0, 120, 125, new Vector2(WIDTH_WINDOW/3f, HEIGHT_WINDOW/3f));
-        _splashScreen.Layer = 0f;
+        _soundHit = Content.Load<SoundEffect>(SOUND_EFFECT_HIT);
+        _splashScreen =  new Texture2D(GraphicsDevice, 1, 1);
         _isLoadingComplete = false;
         _splashTimer = 0f;
-        _logoPosition = new Vector2(600, 140);
+        _logoPosition = new Vector2(500, 140);
+        _logorec = new Rectangle(0, 0, WIDTH_WINDOW, HEIGHT_WINDOW);
 
         _loadingThread = new Thread(LoadGameContent);
         _loadingThread.Start();
@@ -129,6 +135,7 @@ public class RoxxiWaitingGame : Game
         _deathTimer = 0f;
         _deathTimerDuration = 3f;
 
+        _soundPlayed = false;
         _random = new Random();
         _enemies = new List<Enemy>();
 
@@ -175,7 +182,6 @@ public class RoxxiWaitingGame : Game
 
         _enemies.Add(enemy);
     }
-    // FREIO MOTOR FREIAR CO A CAXA DE MARCA, MARCA ENGATADA
     private void ScytheAnimation(GameTime gameTime)
     {
         float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -237,20 +243,21 @@ public class RoxxiWaitingGame : Game
 
         KeyboardManager.Update();
 
+        float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
         if (!_isLoadingComplete)
         {
-            _splashTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                _splashTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            if (_splashTimer >= _splashDuration)
-            {
-                _splashScreen = null;
-                _loadingThread = null;
-                _isLoadingComplete = true;
-            }
+                if (_splashTimer >= _splashDuration)
+                {
+                    _splashScreen.Dispose();
+                    _loadingThread = null;
+                    _isLoadingComplete = true;
+                }
         }
         else
         {
-            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
             if (KeyboardManager.HasBeenPressed(Keys.Space) && !_isAttacking) 
             {
@@ -292,7 +299,12 @@ public class RoxxiWaitingGame : Game
                 foreach( var enemy in _enemies.ToList()){
                     if (_scytheHitbox.Intersects(enemy.Sprite.HitBox) && !enemy.IsDeath)
                     {
-
+                        
+                        if (!_soundPlayed)
+                        {
+                            _soundHit.Play(0.5f, -1f, 0.0f);
+                            _soundPlayed = true; 
+                        }
                         enemy.IsDeath = true;
                         Score();
                         _playAnimDeathEnemy = true;
@@ -302,6 +314,9 @@ public class RoxxiWaitingGame : Game
                     }
                 }
             
+            }else
+            {
+                _soundPlayed = false;
             }
             if(_playAnimDeathEnemy) _deathTimer -= deltaTime;
 
@@ -319,10 +334,13 @@ public class RoxxiWaitingGame : Game
 
         if (!_isLoadingComplete)
         {
-            GraphicsDevice.Clear(Color.White);
-            _splashScreen.Draw(_spriteBatch);
 
-            _spriteBatch.DrawString(_freeMonoFont, "Dragon's High Soft", _logoPosition, Color.Black, 
+             _spriteBatch.Draw(
+                texture: _splashScreen, 
+                destinationRectangle: _logorec, 
+                color: Color.Black
+            );
+            _spriteBatch.DrawString(_freeMonoFont, "Roxxi and Company", _logoPosition, Color.Aqua, 
                     0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
             
         }
