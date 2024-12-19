@@ -2,6 +2,9 @@
 bin/
 obj/
 
+# builds
+publish/
+
 # Ignorar arquivos temporários de sistema operacional e IDEs
 *.tmp
 *.temp
@@ -27,5 +30,3 @@ packages/
 project.lock.json
 
 *.mgcb.cache
-save.txt
-RoxxiWaitingGamecs.txt

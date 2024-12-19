@@ -302,7 +302,7 @@ public class RoxxiWaitingGame : Game
                         
                         if (!_soundPlayed)
                         {
-                            _soundHit.Play(0.5f, -1f, 0.0f);
+                            _soundHit.Play(0.1f, -1f, 0.0f);
                             _soundPlayed = true; 
                         }
                         enemy.IsDeath = true;
