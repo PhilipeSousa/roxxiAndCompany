@@ -77,8 +77,6 @@ public class RoxxiWaitingGame : Game
         _graphics.PreferredBackBufferWidth = WIDTH_WINDOW;
         _graphics.PreferredBackBufferHeight = HEIGHT_WINDOW;
         
-
-        Environment.SetEnvironmentVariable("ALSOFT_HRTF", "0"); // OpenAL issue with _soundHit
         _graphics.IsFullScreen = false;
         Window.AllowUserResizing = false;
         Window.Title = "Roxxi Waiting"; 
